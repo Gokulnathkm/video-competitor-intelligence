@@ -195,29 +195,35 @@ function slideContentPerformance(pres: pptxgen, report: FullReport, pg: number, 
   addTitle(slide, "Top Performing Content");
 
   const valid = report.companies.filter((c) => c.metrics && c.metrics.topVideos.length > 0);
+  const count = valid.length;
+  
+  // Dynamically size layout based on channel count to avoid overlap
+  const rowHeight = count > 3 ? 0.75 : 1.1;
+  const fontSizeCompany = count > 3 ? 9 : 11;
+  const fontSizeTitle = count > 3 ? 8 : 9;
 
   let yPos = 1.1;
-  for (const company of valid.slice(0, 3)) {
+  for (const company of valid) {
     const top = company.metrics!.topVideos[0];
     if (!top) continue;
 
     slide.addText(company.companyName, {
-      x: 0.6, y: yPos, w: 3, h: 0.35,
-      fontSize: 11, color: ACCENT, bold: true, fontFace: "Arial",
+      x: 0.6, y: yPos, w: 4.5, h: 0.22,
+      fontSize: fontSizeCompany, color: ACCENT, bold: true, fontFace: "Arial",
     });
 
     slide.addText(`"${top.title}"`, {
-      x: 0.6, y: yPos + 0.35, w: 6.5, h: 0.3,
-      fontSize: 9, color: WHITE, fontFace: "Arial", italic: true,
+      x: 0.6, y: yPos + 0.22, w: 4.5, h: 0.25,
+      fontSize: fontSizeTitle, color: WHITE, fontFace: "Arial", italic: true,
     });
 
     const stats = `${fmt(top.viewCount)} views  ·  ${fmt(top.likeCount)} likes  ·  ${fmt(top.commentCount)} comments`;
     slide.addText(stats, {
-      x: 0.6, y: yPos + 0.65, w: 6.5, h: 0.25,
-      fontSize: 8, color: GRAY, fontFace: "Arial",
+      x: 0.6, y: yPos + 0.47, w: 4.5, h: 0.2,
+      fontSize: 7, color: GRAY, fontFace: "Arial",
     });
 
-    yPos += 1.2;
+    yPos += rowHeight;
   }
 
   // Avg views chart
@@ -292,6 +298,7 @@ function slidePostingFrequency(pres: pptxgen, report: FullReport, pg: number, to
 
   const valid = report.companies.filter((c) => c.metrics);
   const labels = valid.map((c) => c.companyName);
+  const count = valid.length;
 
   const freqData = [{
     name: "Videos/Month",
@@ -310,11 +317,14 @@ function slidePostingFrequency(pres: pptxgen, report: FullReport, pg: number, to
   });
 
   // Most recent upload info
-  let yPos = 1.2;
+  const rowHeight = count > 3 ? 0.72 : 0.95;
+  const fontSizeCompany = count > 3 ? 9 : 10;
+  let yPos = 1.1;
+
   for (const c of valid) {
     slide.addText(`${c.companyName}`, {
-      x: 6.2, y: yPos, w: 3.5, h: 0.3,
-      fontSize: 10, color: ACCENT, bold: true, fontFace: "Arial",
+      x: 6.2, y: yPos, w: 3.5, h: 0.22,
+      fontSize: fontSizeCompany, color: ACCENT, bold: true, fontFace: "Arial",
     });
 
     const recent = c.metrics!.mostRecentUpload
@@ -322,16 +332,18 @@ function slidePostingFrequency(pres: pptxgen, report: FullReport, pg: number, to
       : "Unknown";
 
     slide.addText(`Last upload: ${recent}`, {
-      x: 6.2, y: yPos + 0.3, w: 3.5, h: 0.25,
-      fontSize: 8, color: GRAY, fontFace: "Arial",
+      x: 6.2, y: yPos + 0.22, w: 3.5, h: 0.2,
+      fontSize: 7.5, color: GRAY, fontFace: "Arial",
     });
 
-    slide.addText(`${c.metrics!.uploadFrequencyPerMonth} videos/month`, {
-      x: 6.2, y: yPos + 0.55, w: 3.5, h: 0.25,
-      fontSize: 8, color: WHITE, fontFace: "Arial",
+    const consistency = c.metrics!.postingConsistency;
+    const stats = `${c.metrics!.uploadFrequencyPerMonth} videos/mo  ·  Consistency: ${consistency}%`;
+    slide.addText(stats, {
+      x: 6.2, y: yPos + 0.42, w: 3.5, h: 0.2,
+      fontSize: 7.5, color: WHITE, fontFace: "Arial",
     });
 
-    yPos += 1.0;
+    yPos += rowHeight;
   }
 
   addFooter(slide, pg, total);
@@ -414,23 +426,28 @@ function slideEngagement(pres: pptxgen, report: FullReport, pg: number, total: n
 function slideGapAnalysis(pres: pptxgen, report: FullReport, pg: number, total: number) {
   const slide = pres.addSlide();
   slide.background = { fill: BG };
-  addTitle(slide, "Gap Analysis");
+  addTitle(slide, "Gap Analysis & Opportunity Mapping");
 
-  let yPos = 1.2;
-  for (const gap of report.gapAnalysis.slice(0, 4)) {
+  const gaps = report.gapAnalysis;
+  gaps.forEach((gap, index) => {
+    // 2-column layout to elegantly accommodate up to 6 channels
+    const isCol2 = index >= 3;
+    const x = isCol2 ? 5.2 : 0.6;
+    const y = 1.2 + (index % 3) * 1.25;
+
     slide.addText(gap.company, {
-      x: 0.6, y: yPos, w: 4, h: 0.3,
-      fontSize: 11, color: ACCENT, bold: true, fontFace: "Arial",
+      x, y, w: 4.2, h: 0.28,
+      fontSize: 10.5, color: ACCENT, bold: true, fontFace: "Arial",
     });
 
     if (gap.missingTopics.length > 0) {
       slide.addText(`Missing: ${gap.missingTopics.join(", ")}`, {
-        x: 0.6, y: yPos + 0.32, w: 9, h: 0.25,
+        x, y: y + 0.28, w: 4.2, h: 0.25,
         fontSize: 8, color: "FCA5A5", fontFace: "Arial",
       });
     } else {
       slide.addText("Covers all identified topic categories", {
-        x: 0.6, y: yPos + 0.32, w: 9, h: 0.25,
+        x, y: y + 0.28, w: 4.2, h: 0.25,
         fontSize: 8, color: "86EFAC", fontFace: "Arial",
       });
     }
@@ -438,13 +455,11 @@ function slideGapAnalysis(pres: pptxgen, report: FullReport, pg: number, total: 
     if (gap.opportunities.length > 0) {
       const oppText = gap.opportunities.slice(0, 2).map((o) => `• ${o}`).join("\n");
       slide.addText(oppText, {
-        x: 0.6, y: yPos + 0.58, w: 9, h: 0.45,
-        fontSize: 8, color: GRAY, fontFace: "Arial", lineSpacingMultiple: 1.3,
+        x, y: y + 0.53, w: 4.2, h: 0.42,
+        fontSize: 7.5, color: GRAY, fontFace: "Arial", lineSpacingMultiple: 1.2,
       });
     }
-
-    yPos += 1.15;
-  }
+  });
 
   addFooter(slide, pg, total);
 }
@@ -454,14 +469,24 @@ function slideRecommendations(pres: pptxgen, report: FullReport, pg: number, tot
   slide.background = { fill: BG };
   addTitle(slide, "Video Marketing Recommendations");
 
-  const recs = report.recommendations.slice(0, 8);
-  const text = recs.map((r, i) => `${i + 1}.  ${r}`).join("\n\n");
+  const recs = report.recommendations;
+  const half = Math.ceil(recs.length / 2);
+  const col1 = recs.slice(0, half).map((r, i) => `${i + 1}.  ${r}`).join("\n\n");
+  const col2 = recs.slice(half, 10).map((r, i) => `${i + half + 1}.  ${r}`).join("\n\n");
 
-  slide.addText(text, {
-    x: 0.6, y: 1.2, w: 8.8, h: 3.8,
-    fontSize: 10, color: WHITE, fontFace: "Arial",
-    lineSpacingMultiple: 1.4, valign: "top",
+  slide.addText(col1, {
+    x: 0.6, y: 1.2, w: 4.3, h: 3.8,
+    fontSize: 9.5, color: WHITE, fontFace: "Arial",
+    lineSpacingMultiple: 1.3, valign: "top",
   });
+
+  if (col2) {
+    slide.addText(col2, {
+      x: 5.2, y: 1.2, w: 4.3, h: 3.8,
+      fontSize: 9.5, color: WHITE, fontFace: "Arial",
+      lineSpacingMultiple: 1.3, valign: "top",
+    });
+  }
 
   addFooter(slide, pg, total);
 }

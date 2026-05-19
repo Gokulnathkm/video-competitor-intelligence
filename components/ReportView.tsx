@@ -1,9 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { FullReport } from "../types";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 import {
   Trophy, TrendingUp, Video, BarChart3, Target, Lightbulb,
@@ -26,12 +26,12 @@ function Section({ id, icon: Icon, title, badge, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="glass-card p-6 md:p-8 mb-6 animate-fade-in">
+    <section id={id} className="glass-card p-6 md:p-8 mb-6 animate-fade-in" aria-labelledby={`${id}-heading`}>
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-[var(--accent-glow)]">
+        <div className="p-2 rounded-lg bg-[var(--accent-glow)]" aria-hidden="true">
           <Icon size={20} className="text-[var(--accent)]" />
         </div>
-        <h2 className="section-title">{title}</h2>
+        <h2 id={`${id}-heading`} className="section-title">{title}</h2>
         {badge && (
           <span className="section-badge bg-[var(--accent-glow)] text-[var(--accent)]">
             {badge}
@@ -54,12 +54,36 @@ function MetricBox({ label, value, sub }: { label: string; value: string; sub?: 
 }
 
 export default function ReportView({ report }: { report: FullReport }) {
-  const valid = report.companies.filter((c) => c.channel && c.metrics);
-  const main = report.companies.find((c) => c.isMainCompany);
-  const leader = report.rankings.overall[0];
+  const valid = useMemo(() => report.companies.filter((c) => c.channel && c.metrics), [report]);
+  const leader = useMemo(() => report.rankings.overall[0], [report]);
+
+  // Alert banner for low-confidence channel matches
+  const lowConfidenceCompanies = useMemo(() => {
+    return report.companies.filter(
+      (c) => c.channel && c.channel.matchConfidence && c.channel.matchConfidence < 70
+    );
+  }, [report]);
+
+  const confidenceWarningBanner = useMemo(() => {
+    if (lowConfidenceCompanies.length === 0) return null;
+    return (
+      <div className="mb-6 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-200 text-sm flex gap-3 items-start animate-fade-in" role="alert">
+        <AlertTriangle className="text-yellow-500 flex-shrink-0 mt-0.5" size={18} />
+        <div>
+          <p className="font-bold mb-1">Fuzzy Channel Match Warning</p>
+          <p className="text-xs text-yellow-300/80 mb-2">
+            YouTube returned lower confidence matches for: <strong>{lowConfidenceCompanies.map((c) => c.companyName).join(", ")}</strong>.
+          </p>
+          <p className="text-xs">
+            If these channels are incorrect, please rerun search with their exact handle (e.g., <code>@HubSpot</code>) or copy-paste their full channel URL.
+          </p>
+        </div>
+      </div>
+    );
+  }, [lowConfidenceCompanies]);
 
   /* ─── Executive Summary ──────────────────────────── */
-  const execSection = (
+  const execSection = useMemo(() => (
     <Section id="executive-summary" icon={Trophy} title="Executive Summary">
       <p className="text-[var(--text-secondary)] leading-relaxed text-base mb-6">
         {report.executiveSummary}
@@ -74,22 +98,22 @@ export default function ReportView({ report }: { report: FullReport }) {
         />
       </div>
     </Section>
-  );
+  ), [report, valid, leader]);
 
   /* ─── Channel Overview ───────────────────────────── */
-  const subsData = valid.map((c, i) => ({
+  const subsData = useMemo(() => valid.map((c, i) => ({
     name: c.companyName,
     value: c.channel!.subscriberCount,
     fill: COLORS[i % COLORS.length],
-  }));
+  })), [valid]);
 
-  const viewsData = valid.map((c, i) => ({
+  const viewsData = useMemo(() => valid.map((c, i) => ({
     name: c.companyName,
     value: c.channel!.totalViews,
     fill: COLORS[i % COLORS.length],
-  }));
+  })), [valid]);
 
-  const channelSection = (
+  const channelSection = useMemo(() => (
     <Section id="channel-overview" icon={BarChart3} title="Channel Overview" badge="Comparison">
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <div>
@@ -117,29 +141,42 @@ export default function ReportView({ report }: { report: FullReport }) {
           </ResponsiveContainer>
         </div>
       </div>
-      <table className="report-table">
-        <thead>
-          <tr>
-            <th>Company</th><th>Subscribers</th><th>Total Views</th><th>Total Videos</th><th>Since</th>
-          </tr>
-        </thead>
-        <tbody>
-          {valid.map((c) => (
-            <tr key={c.companyName}>
-              <td className="font-semibold">{c.companyName}</td>
-              <td>{fmt(c.channel!.subscriberCount)}</td>
-              <td>{fmt(c.channel!.totalViews)}</td>
-              <td>{c.channel!.totalVideos.toLocaleString()}</td>
-              <td>{new Date(c.channel!.publishedAt).getFullYear()}</td>
+      <div className="overflow-x-auto">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>Company</th><th>Subscribers</th><th>Total Views</th><th>Total Videos</th><th>Since</th><th>Match Confidence</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {valid.map((c) => (
+              <tr key={c.companyName}>
+                <td className="font-semibold">{c.companyName}</td>
+                <td>{fmt(c.channel!.subscriberCount)}</td>
+                <td>{fmt(c.channel!.totalViews)}</td>
+                <td>{c.channel!.totalVideos.toLocaleString()}</td>
+                <td>{new Date(c.channel!.publishedAt).getFullYear()}</td>
+                <td>
+                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                    (c.channel!.matchConfidence || 100) >= 85
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : (c.channel!.matchConfidence || 100) >= 60
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                  }`}>
+                    {c.channel!.matchConfidence || 100}%
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
-  );
+  ), [valid, subsData, viewsData]);
 
   /* ─── Content Performance ────────────────────────── */
-  const perfSection = (
+  const perfSection = useMemo(() => (
     <Section id="content-performance" icon={TrendingUp} title="Content Performance" badge="Top Videos">
       {valid.map((c, ci) => (
         <div key={c.companyName} className="mb-6 last:mb-0">
@@ -179,48 +216,53 @@ export default function ReportView({ report }: { report: FullReport }) {
         </div>
       ))}
     </Section>
-  );
+  ), [valid]);
 
   /* ─── Content Topics ─────────────────────────────── */
-  const allTopics = new Set<string>();
-  valid.forEach((c) => c.metrics!.topics.forEach((t) => allTopics.add(t.topic)));
+  const allTopics = useMemo(() => {
+    const list = new Set<string>();
+    valid.forEach((c) => c.metrics!.topics.forEach((t) => list.add(t.topic)));
+    return list;
+  }, [valid]);
 
-  const topicsSection = (
+  const topicsSection = useMemo(() => (
     <Section id="topics" icon={Video} title="Content Topics & Themes">
-      <table className="report-table">
-        <thead>
-          <tr>
-            <th>Topic</th>
-            {valid.map((c) => <th key={c.companyName}>{c.companyName}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {[...allTopics].map((topic) => (
-            <tr key={topic}>
-              <td className="font-medium">{topic}</td>
-              {valid.map((c) => {
-                const t = c.metrics!.topics.find((x) => x.topic === topic);
-                return (
-                  <td key={c.companyName} className={t ? "" : "text-[var(--text-muted)]"}>
-                    {t ? `${t.count} (${t.percentage}%)` : "—"}
-                  </td>
-                );
-              })}
+      <div className="overflow-x-auto">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              {valid.map((c) => <th key={c.companyName}>{c.companyName}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {[...allTopics].map((topic) => (
+              <tr key={topic}>
+                <td className="font-medium">{topic}</td>
+                {valid.map((c) => {
+                  const t = c.metrics!.topics.find((x) => x.topic === topic);
+                  return (
+                    <td key={c.companyName} className={t ? "" : "text-[var(--text-muted)]"}>
+                      {t ? `${t.count} (${t.percentage}%)` : "—"}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
-  );
+  ), [valid, allTopics]);
 
   /* ─── Posting Frequency ──────────────────────────── */
-  const freqData = valid.map((c, i) => ({
+  const freqData = useMemo(() => valid.map((c, i) => ({
     name: c.companyName,
     value: c.metrics!.uploadFrequencyPerMonth,
     fill: COLORS[i % COLORS.length],
-  }));
+  })), [valid]);
 
-  const freqSection = (
+  const freqSection = useMemo(() => (
     <Section id="posting-frequency" icon={Calendar} title="Posting Frequency & Consistency">
       <div className="grid md:grid-cols-2 gap-6">
         <div>
@@ -246,6 +288,7 @@ export default function ReportView({ report }: { report: FullReport }) {
                   Last upload: {c.metrics!.mostRecentUpload
                     ? new Date(c.metrics!.mostRecentUpload).toLocaleDateString()
                     : "Unknown"}
+                  {" · "}Consistency: <strong className="text-[var(--text-primary)]">{c.metrics!.postingConsistency}%</strong>
                 </p>
               </div>
               <p className="text-xl font-bold text-[var(--accent)]">{c.metrics!.uploadFrequencyPerMonth}/mo</p>
@@ -254,25 +297,16 @@ export default function ReportView({ report }: { report: FullReport }) {
         </div>
       </div>
     </Section>
-  );
+  ), [valid, freqData]);
 
   /* ─── Engagement Analysis ────────────────────────── */
-  const engData = valid.map((c, i) => ({
-    name: c.companyName,
-    rate: c.metrics!.engagementRate,
-    avgViews: c.metrics!.avgViewsPerVideo,
-    avgLikes: c.metrics!.avgLikesPerVideo,
-    avgComments: c.metrics!.avgCommentsPerVideo,
-    fill: COLORS[i % COLORS.length],
-  }));
-
-  const engSection = (
+  const engSection = useMemo(() => (
     <Section id="engagement" icon={ThumbsUp} title="Engagement Analysis">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {valid.map((c, ci) => (
           <div key={c.companyName} className="metric-card">
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[ci % COLORS.length] }} />
+              <span className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[ci % COLORS.length] }} aria-hidden="true" />
               <span className="text-xs font-semibold text-[var(--text-secondary)]">{c.companyName}</span>
             </div>
             <p className="text-2xl font-extrabold text-[var(--accent)]">{c.metrics!.engagementRate}%</p>
@@ -280,29 +314,31 @@ export default function ReportView({ report }: { report: FullReport }) {
           </div>
         ))}
       </div>
-      <table className="report-table">
-        <thead>
-          <tr>
-            <th>Company</th><th>Avg Views</th><th>Avg Likes</th><th>Avg Comments</th><th>Engagement %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {valid.map((c) => (
-            <tr key={c.companyName}>
-              <td className="font-semibold">{c.companyName}</td>
-              <td>{fmt(c.metrics!.avgViewsPerVideo)}</td>
-              <td>{fmt(c.metrics!.avgLikesPerVideo)}</td>
-              <td>{fmt(c.metrics!.avgCommentsPerVideo)}</td>
-              <td className="font-bold text-[var(--accent)]">{c.metrics!.engagementRate}%</td>
+      <div className="overflow-x-auto">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>Company</th><th>Avg Views</th><th>Avg Likes</th><th>Avg Comments</th><th>Engagement %</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {valid.map((c) => (
+              <tr key={c.companyName}>
+                <td className="font-semibold">{c.companyName}</td>
+                <td>{fmt(c.metrics!.avgViewsPerVideo)}</td>
+                <td>{fmt(c.metrics!.avgLikesPerVideo)}</td>
+                <td>{fmt(c.metrics!.avgCommentsPerVideo)}</td>
+                <td className="font-bold text-[var(--accent)]">{c.metrics!.engagementRate}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
-  );
+  ), [valid]);
 
   /* ─── Gap Analysis ───────────────────────────────── */
-  const gapSection = (
+  const gapSection = useMemo(() => (
     <Section id="gap-analysis" icon={AlertTriangle} title="Gap Analysis">
       <div className="grid md:grid-cols-2 gap-4">
         {report.gapAnalysis.map((gap) => (
@@ -339,10 +375,10 @@ export default function ReportView({ report }: { report: FullReport }) {
         ))}
       </div>
     </Section>
-  );
+  ), [report]);
 
   /* ─── Recommendations ────────────────────────────── */
-  const recsSection = (
+  const recsSection = useMemo(() => (
     <Section id="recommendations" icon={Lightbulb} title="Video Marketing Recommendations">
       <div className="space-y-3">
         {report.recommendations.map((rec, i) => (
@@ -355,51 +391,45 @@ export default function ReportView({ report }: { report: FullReport }) {
         ))}
       </div>
     </Section>
-  );
+  ), [report]);
 
   /* ─── Overall Ranking ────────────────────────────── */
-  const radarData = report.rankings.overall.map((s) => ({
-    company: s.company,
-    Subscribers: s.subscriberScore,
-    Views: s.viewsScore,
-    Engagement: s.engagementScore,
-    Frequency: s.frequencyScore,
-  }));
-
-  const rankSection = (
+  const rankSection = useMemo(() => (
     <Section id="ranking" icon={Award} title="Overall Ranking & Scores">
-      <table className="report-table mb-6">
-        <thead>
-          <tr>
-            <th>Rank</th><th>Company</th><th>Subscribers</th><th>Views</th><th>Engagement</th><th>Frequency</th><th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.rankings.overall.map((s) => (
-            <tr key={s.company}>
-              <td>
-                <span className={`rank-badge ${s.rank <= 3 ? `rank-${s.rank}` : "rank-other"}`}>
-                  {s.rank}
-                </span>
-              </td>
-              <td className="font-semibold">{s.company}</td>
-              <td>{s.subscriberScore}</td>
-              <td>{s.viewsScore}</td>
-              <td>{s.engagementScore}</td>
-              <td>{s.frequencyScore}</td>
-              <td className="font-extrabold text-[var(--accent)] text-lg">{s.totalScore}</td>
+      <div className="overflow-x-auto">
+        <table className="report-table mb-6">
+          <thead>
+            <tr>
+              <th>Rank</th><th>Company</th><th>Subscribers</th><th>Views</th><th>Engagement</th><th>Frequency</th><th>Total</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {report.rankings.overall.map((s) => (
+              <tr key={s.company}>
+                <td>
+                  <span className={`rank-badge ${s.rank <= 3 ? `rank-${s.rank}` : "rank-other"}`}>
+                    {s.rank}
+                  </span>
+                </td>
+                <td className="font-semibold">{s.company}</td>
+                <td>{s.subscriberScore}</td>
+                <td>{s.viewsScore}</td>
+                <td>{s.engagementScore}</td>
+                <td>{s.frequencyScore}</td>
+                <td className="font-extrabold text-[var(--accent)] text-lg">{s.totalScore}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p className="text-xs text-[var(--text-muted)] italic">
         Scoring weights: Subscribers 25% · Avg Views 25% · Engagement 30% · Upload Frequency 20%
       </p>
     </Section>
-  );
+  ), [report]);
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
           Competitor Intelligence Report
@@ -409,6 +439,10 @@ export default function ReportView({ report }: { report: FullReport }) {
           {" · "}{valid.length} companies analysed
         </p>
       </div>
+
+      {/* Confidence match warnings banner */}
+      {confidenceWarningBanner}
+
       {execSection}
       {channelSection}
       {perfSection}

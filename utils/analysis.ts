@@ -31,10 +31,28 @@ export function computeMetrics(company: CompanyReport): ChannelMetrics | null {
       ? parseFloat((((totalLikes + totalComments) / totalViews) * 100).toFixed(2))
       : 0;
 
-  // Upload frequency: videos per month based on date range of fetched videos
+  // Upload consistency: Coefficient of variation of posting intervals
   const dates = videos.map((v) => new Date(v.publishedAt).getTime()).sort((a, b) => a - b);
-  const spanMs = dates[dates.length - 1] - dates[0];
-  const spanMonths = Math.max(spanMs / (1000 * 60 * 60 * 24 * 30), 1);
+  
+  let postingConsistency = 70; // Baseline default
+  if (n > 2) {
+    const intervals: number[] = [];
+    for (let i = 1; i < dates.length; i++) {
+      intervals.push((dates[i] - dates[i - 1]) / (1000 * 60 * 60 * 24));
+    }
+    const avgInterval = intervals.reduce((sum, val) => sum + val, 0) / intervals.length;
+    const variance = intervals.reduce((sum, val) => sum + Math.pow(val - avgInterval, 2), 0) / intervals.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = avgInterval > 0 ? stdDev / avgInterval : 0;
+    // Standardize: low variation = near 100%, high variation = drops down to 10% min
+    postingConsistency = Math.max(10, Math.min(100, Math.round(100 - cv * 35)));
+  }
+
+  // Upload frequency: videos per month based on span, incorporating latency to current date
+  const now = Date.now();
+  const oldestTime = dates[0];
+  const spanMs = Math.max(now - oldestTime, 1000 * 60 * 60 * 24 * 15); // Min span 15 days
+  const spanMonths = spanMs / (1000 * 60 * 60 * 24 * 30);
   const uploadFrequencyPerMonth = parseFloat((n / spanMonths).toFixed(1));
 
   const sortedByViews = [...videos].sort((a, b) => b.viewCount - a.viewCount);
@@ -52,6 +70,7 @@ export function computeMetrics(company: CompanyReport): ChannelMetrics | null {
     avgCommentsPerVideo: avgComments,
     engagementRate,
     uploadFrequencyPerMonth,
+    postingConsistency,
     mostRecentUpload,
     topVideos,
     topics,

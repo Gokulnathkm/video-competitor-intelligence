@@ -14,6 +14,8 @@ export interface ChannelInfo {
   publishedAt: string;
   customUrl?: string;
   country?: string;
+  matchConfidence?: number;
+  confidenceReason?: string;
 }
 
 export interface VideoInfo {
@@ -40,6 +42,7 @@ export interface ChannelMetrics {
   avgCommentsPerVideo: number;
   engagementRate: number;
   uploadFrequencyPerMonth: number;
+  postingConsistency: number;
   mostRecentUpload: string;
   topVideos: VideoInfo[];
   topics: TopicDistribution[];

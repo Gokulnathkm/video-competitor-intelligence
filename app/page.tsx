@@ -142,17 +142,21 @@ export default function Home() {
           <div className="glass-card p-8 space-y-6">
             {/* Main Company */}
             <div>
-              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+              <label htmlFor="main-company" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                 Your Company
               </label>
               <input
                 id="main-company"
                 type="text"
-                placeholder="e.g. HubSpot"
+                placeholder="e.g. HubSpot, @HubSpot, or full YouTube channel URL"
                 value={mainCompany}
                 onChange={(e) => setMainCompany(e.target.value)}
                 className="input-field"
+                aria-describedby="main-company-tip"
               />
+              <p id="main-company-tip" className="text-xs text-[var(--text-muted)] mt-1.5">
+                Paste channel handles (e.g. <code>@HubSpot</code>) or a direct channel link for 100% accurate lookups.
+              </p>
             </div>
 
             {/* Competitors */}
@@ -166,18 +170,20 @@ export default function Home() {
                     <input
                       id={`competitor-${i}`}
                       type="text"
-                      placeholder={`Competitor ${i + 1}`}
+                      placeholder={`Competitor ${i + 1} (Name, @handle, or URL)`}
                       value={c}
                       onChange={(e) => updateCompetitor(i, e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleAnalyze();
                       }}
                       className="input-field"
+                      aria-label={`Competitor channel ${i + 1}`}
                     />
                     {competitors.length > 1 && (
                       <button
                         onClick={() => removeCompetitor(i)}
                         className="p-3 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--danger)] hover:border-[var(--danger)] transition"
+                        aria-label={`Remove competitor ${i + 1}`}
                       >
                         <X size={18} />
                       </button>
@@ -197,7 +203,7 @@ export default function Home() {
             </div>
 
             {error && (
-              <p className="text-[var(--danger)] text-sm font-medium">{error}</p>
+              <p className="text-[var(--danger)] text-sm font-medium" role="alert">{error}</p>
             )}
 
             <button
@@ -221,18 +227,42 @@ export default function Home() {
   /* ── LOADING STATE ───────────────────────────────── */
   if (state === "loading") {
     return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center animate-fade-in">
-          <div className="spinner mx-auto mb-6" />
+      <main className="min-h-screen px-4 md:px-8 py-12 max-w-5xl mx-auto flex flex-col justify-center">
+        <div className="text-center mb-8 max-w-md mx-auto">
+          <Loader2 className="animate-spin text-[var(--accent)] mx-auto mb-4" size={40} />
           <h2 className="text-2xl font-bold mb-2">Analysing Competitors</h2>
-          <p className="text-[var(--text-secondary)] mb-6">{loadingMsg}</p>
-          <div className="w-64 mx-auto progress-bar">
+          <p className="text-[var(--text-secondary)] text-sm mb-4">{loadingMsg}</p>
+          <div className="w-full progress-bar mb-2">
             <div
               className="progress-bar-fill"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-sm text-[var(--text-muted)] mt-3">{progress}%</p>
+          <p className="text-xs text-[var(--text-muted)]">{progress}% Complete</p>
+        </div>
+
+        {/* Pulsing Loading Skeleton Dashboard */}
+        <div className="animate-pulse space-y-6 max-w-4xl mx-auto w-full">
+          <div className="h-44 rounded-xl bg-slate-900/60 border border-slate-800/80 p-6 space-y-4">
+            <div className="h-6 w-1/4 rounded bg-slate-800" />
+            <div className="h-4 w-3/4 rounded bg-slate-800" />
+            <div className="grid grid-cols-4 gap-4 pt-4">
+              <div className="h-12 rounded bg-slate-800" />
+              <div className="h-12 rounded bg-slate-800" />
+              <div className="h-12 rounded bg-slate-800" />
+              <div className="h-12 rounded bg-slate-800" />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="h-64 rounded-xl bg-slate-900/60 border border-slate-800/80 p-6 space-y-4">
+              <div className="h-6 w-1/3 rounded bg-slate-800" />
+              <div className="h-40 rounded bg-slate-800" />
+            </div>
+            <div className="h-64 rounded-xl bg-slate-900/60 border border-slate-800/80 p-6 space-y-4">
+              <div className="h-6 w-1/3 rounded bg-slate-800" />
+              <div className="h-40 rounded bg-slate-800" />
+            </div>
+          </div>
         </div>
       </main>
     );
