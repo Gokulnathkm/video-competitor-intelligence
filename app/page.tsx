@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FullReport } from "../types";
-import { buildFullReport } from "../utils/analysis";
-import { generatePPTX } from "../utils/pptx-generator";
-import ReportView from "../components/ReportView";
+import { FullReport } from "@/types";
+import { buildFullReport } from "@/backend/analytics/report-builder";
+import { generatePPTX } from "@/backend/ppt/ppt-generator";
+import ReportView from "@/components/report/ReportView";
 import {
   Search,
   Plus,

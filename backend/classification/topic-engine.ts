@@ -1,3 +1,5 @@
+import { TopicDistribution, VideoInfo } from "@/types";
+
 const TOPIC_KEYWORDS: Record<string, string[]> = {
   "Tutorial / How-to": [
     "tutorial", "how to", "guide", "learn", "tips", "step by step",
@@ -41,9 +43,7 @@ const TOPIC_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-export function extractTopics(
-  videos: { title: string; description: string; tags: string[] }[]
-): { topic: string; count: number; percentage: number }[] {
+export function extractTopics(videos: VideoInfo[]): TopicDistribution[] {
   const topicCounts: Record<string, number> = {};
 
   for (const video of videos) {

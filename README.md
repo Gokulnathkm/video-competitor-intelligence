@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Video Competitor Intelligence Tool
+
+An enterprise-ready, professional-grade competitor intelligence dashboard for YouTube content analytics and automated report generation. Built using Next.js App Router, TypeScript, Tailwind CSS, Recharts, and pptxgenjs.
+
+## Overview
+This tool allows businesses to run deep competitor analysis on YouTube channels. It aggregates statistics, classifies video topics using title keyword heuristic classification, determines upload frequencies and posting consistencies (using standard deviation coefficient of variation), calculates audience engagement rates, performs content gap analyses with opportunity mapping, and produces high-quality exportable PowerPoint (.pptx) slide decks.
+
+---
+
+## Project Architecture & Directory Structure
+
+The project has been refactored into a modular enterprise-level architecture separating frontend presentation components from backend business logic services:
+
+```text
+video-competitor-intelligence/
+│
+├── app/                              # Next.js App Router Pages & API Routes
+│   ├── api/
+│   │   └── analyze/
+│   │       └── route.ts              # Thin wrapper API route invoking backend services
+│   ├── globals.css                   # Global styles & design token variables
+│   ├── layout.tsx                    # Main App Layout (fonts, metadata, SEO)
+│   └── page.tsx                      # Competitor analysis workspace entrypoint
+│
+├── backend/                          # Backend Logic & Computation Services
+│   ├── analytics/                    # Modular analytics services
+│   │   ├── engagement.ts             # Views, likes, and comment rate metrics
+│   │   ├── frequency.ts              # Posting frequency and consistency calculations
+│   │   ├── gap-analysis.ts           # Content gap and opportunity discovery
+│   │   ├── recommendations.ts        # Dynamic recommendations & executive summaries
+│   │   ├── scoring.ts                # Score normalization and ranking engines
+│   │   └── report-builder.ts         # Orchestration layer compiling reports
+│   │
+│   ├── classification/
+│   │   └── topic-engine.ts           # Title keyword topic classification service
+│   │
+│   ├── ppt/
+│   │   └── ppt-generator.ts          # Custom PowerPoint slide deck builder
+│   │
+│   └── youtube/
+│       ├── youtube-service.ts        # YouTube API ingestion service with match scoring
+│       └── youtube-types.ts          # YouTube API service type definitions
+│
+├── components/                       # Frontend Presentation Layer
+│   └── report/
+│       └── ReportView.tsx            # High-fidelity dashboard displaying report details
+│
+├── lib/                              # Shared Library Utilities & Constants
+│   ├── colors.ts                     # Hex code constants for charts & presentation
+│   ├── constants.ts                  # Shared application constants
+│   ├── formatters.ts                 # Formatting helper functions
+│   └── utils.ts                      # Tailwind styling utility helpers
+│
+├── services/                         # Shared Service Clients
+│   └── youtube-api.ts                # Configured Axios instance for YouTube API calls
+│
+├── types/                            # Type Definition Layer
+│   ├── index.ts                      # Main type entry point re-exporting modules
+│   ├── channel.ts                    # Channel information typings
+│   ├── video.ts                      # Video details typings
+│   ├── analytics.ts                  # Analytics results typings
+│   └── report.ts                     # Report and gap analysis typings
+│
+└── tsconfig.json                     # Path-alias configured TypeScript configuration
+```
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js (v18.x or later)
+- npm or yarn
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Installation
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   cd video-competitor-intelligence
+   ```
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
+
+### Configuration
+Create a `.env.local` file in the root of the project and specify your YouTube Data API v3 key:
+```env
+YOUTUBE_API_KEY=your_youtube_data_api_v3_key_here
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Running the App Locally
+Start the development server:
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Building for Production
+Build the optimized production bundle:
+```bash
+npm run build
+```
+Start the production server:
+```bash
+npm run start
+```

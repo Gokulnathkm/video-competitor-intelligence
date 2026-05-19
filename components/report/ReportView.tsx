@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { FullReport } from "../types";
+import { FullReport } from "@/types";
+import { COLORS } from "@/lib/colors";
+import { fmt } from "@/lib/formatters";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
@@ -9,14 +11,6 @@ import {
   Trophy, TrendingUp, Video, BarChart3, Target, Lightbulb,
   AlertTriangle, Award, Eye, ThumbsUp, MessageSquare, Calendar,
 } from "lucide-react";
-
-const COLORS = ["#6366f1", "#f43f5e", "#10b981", "#f59e0b", "#8b5cf6"];
-
-function fmt(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  return n.toLocaleString();
-}
 
 function Section({ id, icon: Icon, title, badge, children }: {
   id: string;
