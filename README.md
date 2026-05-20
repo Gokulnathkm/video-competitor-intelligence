@@ -6,6 +6,17 @@ An enterprise-ready, professional-grade competitor intelligence dashboard for Yo
 This tool allows businesses to run deep competitor analysis on YouTube channels. It aggregates statistics, classifies video topics using title keyword heuristic classification, determines upload frequencies and posting consistencies (using standard deviation coefficient of variation), calculates audience engagement rates, performs content gap analyses with opportunity mapping, and produces high-quality exportable PowerPoint (.pptx) slide decks.
 
 ---
+## Tech Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Recharts
+- PptxGenJS
+- Axios
+- YouTube Data API v3
+- Vercel
+
 
 ## Project Architecture & Directory Structure
 
@@ -66,6 +77,7 @@ video-competitor-intelligence/
 
 ---
 
+
 ## Getting Started
 
 ### Prerequisites
@@ -104,3 +116,6 @@ Start the production server:
 ```bash
 npm run start
 ```
+
+## Live Demo
+https://video-competitor-intelligence.vercel.app/
